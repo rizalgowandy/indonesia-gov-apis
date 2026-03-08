@@ -3,7 +3,7 @@ name: querying-indonesian-gov-data
 description: >
   Query 50 Indonesian government APIs and data sources — BPJPH halal certification,
   BPOM food safety, OJK financial legality, BPS statistics, BMKG weather/earthquakes,
-  Bank Indonesia exchange rates, pasal.id law MCP, IDX stocks, CKAN open data portals.
+  Bank Indonesia exchange rates, IDX stocks, CKAN open data portals, pasal.id (third-party law MCP).
   Use when building apps with Indonesian government data, scraping .go.id websites,
   checking halal certification, verifying company legality, looking up financial entity
   status, or connecting to Indonesian MCP servers. Includes ready-to-run Python patterns,
@@ -26,7 +26,7 @@ Route the user's intent to the right child reference, then follow its patterns.
 | Weather in Indonesia, earthquake, tsunami | [references/bmkg-weather.md](references/bmkg-weather.md) | `GET data.bmkg.go.id/DataMKG/TEWS/autogempa.json` |
 | GDP, inflation, population, trade stats | [references/bps-statistics.md](references/bps-statistics.md) | `GET webapi.bps.go.id/v1/api/...` (free API key) |
 | USD/IDR exchange rate, BI Rate | [references/bank-indonesia.md](references/bank-indonesia.md) | Scrape `bi.go.id/id/statistik/informasi-kurs/` |
-| Indonesian law, regulation, specific pasal | [references/pasal-id-law.md](references/pasal-id-law.md) | MCP: `claude mcp add --transport http pasal-id ...` |
+| Indonesian law, regulation, specific pasal | [references/pasal-id-law.md](references/pasal-id-law.md) | MCP (third-party): `claude mcp add --transport http pasal-id ...` |
 | Government datasets on any topic | [references/ckan-portals.md](references/ckan-portals.md) | `GET {portal}/api/3/action/package_search` |
 | Disaster risk for a location | [references/inarisk-disaster.md](references/inarisk-disaster.md) | `GET inarisk.bnpb.go.id/api/risk/score?lat=&lon=` |
 | Verify company is registered | [references/company-verification.md](references/company-verification.md) | OpenCorporates → OCCRP → AHU cross-ref |

@@ -18,7 +18,7 @@ git clone https://github.com/suryast/indonesia-gov-apis.git
 Connect Indonesian data sources to AI assistants via [Model Context Protocol](https://modelcontextprotocol.io):
 
 ```bash
-# Connect pasal.id (Indonesian law) to Claude
+# Connect pasal.id (third-party Indonesian law index) to Claude
 claude mcp add --transport http pasal-id https://pasal-mcp-server-production.up.railway.app/mcp
 ```
 
@@ -36,7 +36,7 @@ See [`mcp-servers/`](mcp-servers/) for full setup instructions and a list of dat
 | 2 | [BPS Statistics](apis/tier1-open-apis/bps/) | Badan Pusat Statistik | GDP, CPI, population, trade | ✅ REST API |
 | 3 | [BMKG Weather](apis/tier1-open-apis/bmkg/) | BMKG | Weather, earthquakes, tsunami | ✅ JSON feeds |
 | 4 | [IDX / BEI](apis/tier1-open-apis/idx/) | Bursa Efek Indonesia | Stock prices, corporate data | ⚠️ Unofficial |
-| 5 | [pasal.id MCP](apis/tier1-open-apis/pasal-id/) | Open Source | 40K regulations, 937K articles | 🔵 MCP Ready |
+| 5 | [DJPB Treasury](apis/tier1-open-apis/djpb-treasury/) | Kemenkeu | Treasury, disbursement data | ✅ CKAN API |
 | 6 | [JDIH BPK](apis/tier1-open-apis/jdih-bpk/) | BPK / Perpusnas | Legal documentation network | ✅ Partial API |
 | 7 | [Putusan MA](apis/tier1-open-apis/putusan-ma/) | Mahkamah Agung | Court decisions (millions) | ✅ Public search |
 | 8 | [LPSE / INAPROC](apis/tier1-open-apis/lpse-inaproc/) | LKPP | Government procurement tenders | ⚠️ Scrape (689 hosts) |
@@ -112,6 +112,7 @@ See [`mcp-servers/`](mcp-servers/) for full setup instructions and a list of dat
 | 48 | [OGP Indonesia](apis/tier7-civil-society/ogp-indonesia/) | OGP | Ministry transparency scores | ⚠️ Reports |
 | 49 | [Geoportal One Map](apis/tier7-civil-society/geoportal-onemap/) | BIG / KLHK | 85 thematic maps, One Map Policy | ✅ WMS/WFS |
 | 50 | [SIGAP / InaRisk](apis/tier7-civil-society/sigap-inarisk/) | BNPB | Disaster risk scores by location | ✅ REST API |
+| 51 | [pasal.id](apis/tier7-civil-society/pasal-id/) | Community (third-party) | 40K regulations, 937K articles via MCP | 🔵 MCP Ready |
 
 ---
 

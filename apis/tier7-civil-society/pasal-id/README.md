@@ -1,6 +1,8 @@
 # pasal.id — Indonesian Law & Regulation MCP Server
 
-**Provider:** Open source (community-maintained)
+> ⚠️ **Third-party project** — pasal.id is a community-maintained open-source project, NOT an official Indonesian government portal. It indexes data from the official peraturan.go.id.
+
+**Provider:** Open source (community-maintained, third-party)
 **MCP Server:** https://pasal-mcp-server-production.up.railway.app/mcp
 **Source data:** peraturan.go.id (official government regulation portal)
 **API type:** 🔵 MCP (Model Context Protocol) + HTTP-callable tools

@@ -4,7 +4,7 @@
 
 ## Available MCP Servers
 
-### 🇮🇩 pasal.id — Indonesian Law & Regulation
+### 🇮🇩 pasal.id — Indonesian Law & Regulation (third-party)
 
 The first open, AI-native Indonesian legal platform. 40,143 regulations and 937,155 pasal (articles) structured by article and clause.
 
