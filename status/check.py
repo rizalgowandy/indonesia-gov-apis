@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Daily portal status checker. Writes results to status/data/YYYY-MM-DD.json."""
+"""Daily portal status checker. Checks from AU (local) and ID (Jakarta SSH).
+Writes results to status/data/YYYY-MM-DD.json."""
 
 import json
 import subprocess
@@ -8,6 +9,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 DATA_DIR = Path(__file__).parent / "data"
+
+# Jakarta proxy box for in-country checks
+JAKARTA_SSH = "polybot@117.53.46.31"
 
 PORTALS = [
     # (id, name, url, agency, tier)
@@ -72,13 +76,24 @@ PORTALS = [
 ]
 
 
-def check_url(url: str, timeout: int = 10) -> dict:
-    """Check a URL and return status info."""
+def classify(code: int) -> str:
+    if code == 0:
+        return "dns_dead"
+    elif 200 <= code < 400:
+        return "up"
+    elif code == 403:
+        return "blocked"
+    else:
+        return "error"
+
+
+def check_url_local(url: str, timeout: int = 10) -> dict:
+    """Check a URL from local machine (Sydney AU)."""
     try:
         r = subprocess.run(
             [
                 "curl", "-s", "-o", "/dev/null",
-                "-w", "%{http_code}|%{time_total}|%{redirect_url}",
+                "-w", "%{http_code}|%{time_total}",
                 "-L", "--max-redirs", "3", "--max-time", str(timeout),
                 url,
             ],
@@ -87,28 +102,40 @@ def check_url(url: str, timeout: int = 10) -> dict:
         parts = r.stdout.strip().split("|")
         code = int(parts[0]) if parts[0].isdigit() else 0
         latency = float(parts[1]) if len(parts) > 1 else 0
-        redirect = parts[2] if len(parts) > 2 else ""
     except Exception:
-        code, latency, redirect = 0, 0, ""
+        code, latency = 0, 0
 
-    # Classify
-    if code == 0:
-        status = "dns_dead"
-    elif code >= 200 and code < 400:
-        status = "up"
-    elif code == 403:
-        status = "blocked"
-    elif code >= 500:
-        status = "error"
-    else:
-        status = "error"
+    return {"http_code": code, "latency_ms": round(latency * 1000), "status": classify(code)}
 
-    return {
-        "http_code": code,
-        "latency_ms": round(latency * 1000),
-        "status": status,
-        "redirect": redirect,
-    }
+
+def check_url_jakarta(url: str, timeout: int = 10) -> dict:
+    """Check a URL from Jakarta via SSH."""
+    cmd = f"curl -s -o /dev/null -w '%{{http_code}}|%{{time_total}}' -L --max-redirs 3 --max-time {timeout} '{url}'"
+    try:
+        r = subprocess.run(
+            ["ssh", "-o", "ConnectTimeout=5", "-o", "StrictHostKeyChecking=no", JAKARTA_SSH, cmd],
+            capture_output=True, text=True, timeout=timeout + 10,
+        )
+        raw = r.stdout.strip().replace("'", "")
+        parts = raw.split("|")
+        code = int(parts[0]) if parts[0].isdigit() else 0
+        latency = float(parts[1]) if len(parts) > 1 else 0
+    except Exception:
+        code, latency = 0, 0
+
+    return {"http_code": code, "latency_ms": round(latency * 1000), "status": classify(code)}
+
+
+def check_jakarta_available() -> bool:
+    """Test if Jakarta SSH is reachable."""
+    try:
+        r = subprocess.run(
+            ["ssh", "-o", "ConnectTimeout=5", JAKARTA_SSH, "echo ok"],
+            capture_output=True, text=True, timeout=10,
+        )
+        return r.stdout.strip() == "ok"
+    except Exception:
+        return False
 
 
 def main():
@@ -116,44 +143,90 @@ def main():
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     ts = datetime.now(timezone.utc).isoformat()
 
+    jakarta_ok = check_jakarta_available()
+    print(f"Jakarta SSH: {'✅ available' if jakarta_ok else '❌ unreachable'}\n")
+
     results = {
         "date": today,
         "checked_at": ts,
-        "checked_from": "sydney-au",
+        "sources": {
+            "au": {"location": "Sydney, Australia", "type": "datacenter", "provider": "DigitalOcean"},
+            "id": {"location": "Jakarta, Indonesia", "type": "datacenter", "provider": "CloudKilat",
+                    "available": jakarta_ok},
+        },
         "portals": {},
     }
 
     for pid, name, url, agency, tier in PORTALS:
-        print(f"  Checking {name} ({url})...", end=" ", flush=True)
-        r = check_url(url)
-        r["name"] = name
-        r["url"] = url
-        r["agency"] = agency
-        r["tier"] = tier
-        results["portals"][pid] = r
-        icon = {"up": "✅", "blocked": "⚠️", "dns_dead": "❌", "error": "❌"}.get(r["status"], "?")
-        print(f"{icon} {r['http_code']} ({r['latency_ms']}ms)")
+        print(f"  {name}...", end=" ", flush=True)
 
+        au = check_url_local(url)
+        id_result = check_url_jakarta(url) if jakarta_ok else {"http_code": -1, "latency_ms": 0, "status": "skip"}
+
+        # Determine overall status
+        au_s = au["status"]
+        id_s = id_result["status"]
+
+        if au_s == "up" or id_s == "up":
+            if au_s == "up" and id_s == "up":
+                overall = "up"
+            elif au_s != "up" and id_s == "up":
+                overall = "geo_blocked_intl"  # works in ID, blocked outside
+            else:
+                overall = "geo_blocked_id"  # works outside, blocked in ID (rare)
+        elif au_s == "blocked" or id_s == "blocked":
+            if id_s == "up":
+                overall = "geo_blocked_intl"
+            elif au_s == "blocked" and id_s == "blocked":
+                overall = "blocked"  # CF challenge everywhere
+            else:
+                overall = "blocked"
+        elif au_s == "dns_dead" and id_s == "dns_dead":
+            overall = "dns_dead"
+        elif au_s == "dns_dead" and id_s == "skip":
+            overall = "dns_dead"
+        else:
+            overall = "down"
+
+        portal = {
+            "name": name,
+            "url": url,
+            "agency": agency,
+            "tier": tier,
+            "status": overall,
+            "au": au,
+            "id": id_result,
+        }
+        results["portals"][pid] = portal
+
+        au_icon = {"up": "✅", "blocked": "⚠️", "dns_dead": "❌", "error": "❌"}.get(au_s, "?")
+        id_icon = {"up": "✅", "blocked": "⚠️", "dns_dead": "❌", "error": "❌", "skip": "⏭️"}.get(id_s, "?")
+        overall_icon = {
+            "up": "✅", "geo_blocked_intl": "🌏", "geo_blocked_id": "🔒",
+            "blocked": "⚠️", "dns_dead": "❌", "down": "❌",
+        }.get(overall, "?")
+        print(f"AU:{au_icon} ID:{id_icon} → {overall_icon} {overall}")
+
+    # Write files
     out = DATA_DIR / f"{today}.json"
     out.write_text(json.dumps(results, indent=2))
     print(f"\nSaved to {out}")
 
-    # Also write latest.json for the status page
     latest = DATA_DIR / "latest.json"
     latest.write_text(json.dumps(results, indent=2))
 
-    # Build index of all days
     days = sorted(p.stem for p in DATA_DIR.glob("????-??-??.json"))
     (DATA_DIR / "index.json").write_text(json.dumps(days))
 
     # Summary
-    statuses = [r["status"] for r in results["portals"].values()]
+    statuses = [p["status"] for p in results["portals"].values()]
     up = statuses.count("up")
+    geo = statuses.count("geo_blocked_intl") + statuses.count("geo_blocked_id")
     blocked = statuses.count("blocked")
     dead = statuses.count("dns_dead")
-    err = statuses.count("error")
+    down = statuses.count("down")
     total = len(statuses)
-    print(f"\n✅ {up}/{total} up | ⚠️ {blocked} blocked | ❌ {dead} DNS dead | ❌ {err} error")
+    print(f"\n✅ {up} up | 🌏 {geo} geo-blocked | ⚠️ {blocked} CF challenge | ❌ {dead} DNS dead | ❌ {down} down | Total: {total}")
 
 
 if __name__ == "__main__":
