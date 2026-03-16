@@ -172,6 +172,34 @@ requests.get("https://{portal}/api/3/action/package_search", params={"q": "keywo
 └── examples/                     # Working Python examples
 ```
 
+## 📅 Portal Status Timeline
+
+Daily log of which Indonesian government portals are accessible, blocked, or down. Monitored from Sydney (AU), Singapore, and Jakarta (ID) via [indonesia-civic-signal-monitor](https://github.com/suryast/indonesia-civic-signal-monitor).
+
+**Why this matters:** Indonesian government websites frequently go down, change URLs, add geo-blocks, or break without notice. There's no public status page. This is the closest thing to one.
+
+### 2026-03-16 (Sunday)
+
+| Portal | Status | From AU | From ID | Notes |
+|--------|--------|---------|---------|-------|
+| **BMKG** (data.bmkg.go.id) | ✅ Working | ✅ 200 | ✅ 200 | Earthquake + weather JSON feeds stable |
+| **BPS** (webapi.bps.go.id) | ✅ Working | ✅ 200 | ✅ 200 | Statistics API, needs API key |
+| **OJK Waspada** (sikapiuangmu.ojk.go.id) | ⚠️ Geo-blocked | ❌ 403 | ✅ 200 | Blacklist data accessible via Jakarta proxy |
+| **BPOM** (cekbpom.pom.go.id) | ✅ Working | ✅ 200 | ✅ 200 | Redesigned — now DataTables POST + CSRF. Old `/produk/0/{id}` URLs all 404. New endpoint: `POST /produk-dt/all`. 639K+ products |
+| **BPJPH** (sertifikasi.halal.go.id) | ❌ DNS Dead | ❌ NXDOMAIN | ❌ NXDOMAIN | Old cert search portal. DNS dead from everywhere including Jakarta. `bpjph.halal.go.id` is alive but is a Gatsby news site, no public cert search |
+| **AHU** (ahu.go.id) | ⚠️ Maintenance | ❌ Timeout | ❌ 522 | Company registry portal in extended maintenance. Needs headless browser + Indonesian IP |
+| **KPU** (infopemilu.kpu.go.id) | ⚠️ Changed | ✅ 200 (HTML) | ✅ 200 (HTML) | Was JSON API, now returns HTML only. Server-rendered pages, no XHR data endpoint. Parser rewrite needed |
+| **LPSE** (lpse.*.go.id) | ❌ Network Dead | ❌ Timeout/403 | ❌ CF 403 | Entire LPSE network broken. LKPP migrating to `ars.inaproc.id` but CNAME on different CF zone → "CNAME Cross-User Banned". 589 portals affected. `spse.inaproc.id` (directory) behind CF Turnstile |
+| **LHKPN** (elhkpn.kpk.go.id) | ❌ Auth Wall | Redirects to login | Redirects to login | Wealth declaration search now behind reCAPTCHA + login. Was previously public |
+| **OSS** (oss.go.id) | ❌ Page Removed | ❌ 404 | ❌ 404 | `/informasi/pencarian-nib` returns 404 from everywhere, including Jakarta. Public NIB search removed entirely |
+| **SIMBG** (simbg.pu.go.id) | ❌ Down | ❌ Host unreachable | ❌ Host unreachable | Building permit API unresponsive |
+| **OJK API** (api.ojk.go.id) | ❌ DNS Dead | ❌ NXDOMAIN | ❌ NXDOMAIN | Main API endpoint DNS dead since at least Mar 10 |
+| **CORETAX** (coretaxdjp.pajak.go.id) | ✅ Reachable | ✅ 200 | ✅ 200 | Tax portal SPA (login page). Monitors for maintenance notices |
+
+**Summary:** 4 of 13 monitored portals fully working. 2 geo-blocked (accessible via Jakarta proxy). 7 broken due to government infrastructure changes.
+
+---
+
 ## Related Projects
 
 | Project | Description |
